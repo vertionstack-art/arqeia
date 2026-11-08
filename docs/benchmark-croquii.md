@@ -109,11 +109,93 @@ feita em **2026-11-08** com a conta do próprio usuário (plano **Grátis**), pe
 | Equipe | Papéis Dono/Admin/Membro, financeiro por pessoa | Escritório → Acessos | Tela | Permissão por pessoa só no plano Estúdio | Organizações e papéis (pendente no Traço) | P1 | Verificado |
 | IA | Memória do gosto do escritório; nomes anonimizados antes da IA | Biblioteca → Gosto do escritório | Tela; site | Uso de IA em memorial/estudo não detalhado | IA com comandos validados e prévia (Fase 8) | P2 | Verificado (tela) / Anunciado (anonimização) |
 
-## Planos (site, 2026-11-08)
+## Auditoria profunda — testes práticos (2026-11-08, em andamento)
 
-Grátis (3 projetos, sem cartão) · **Autônomo** a partir de R$ 67/mês (1 pessoa, 3 projetos ativos, 10 GB) ·
-**Escritório** (até 5 pessoas, ilimitado, 200 GB, gestão completa) · **Estúdio** (até 12, 500 GB, permissão por pessoa).
-Pagamento por Pix ou cartão. Oferta de fundador: 10% por 12 meses até 15/12.
+Com autorização do usuário para "clicar em tudo", foi criado o projeto **"Teste auditoria Traço"**
+(1 das 3 vagas grátis; pode ser excluído depois). Ações irreversíveis ou que saem da conta (excluir, convidar,
+enviar ao cliente, assinar plano, baixar arquivos) **não** foram executadas.
+
+### Menus globais
+
+| Item | Resultado |
+|---|---|
+| "O que você quer fazer?" (`?`) | Paleta de ações: mandar ao cliente (WhatsApp/e-mail), importar DWG, quadro de áreas, pranchas em PDF, estudar terreno, gerar plantas pelo programa, nova proposta, completar carimbo… |
+| Dúvidas | Ajuda contextual por tela, com tour e "Falar com a gente" |
+| Horas | Cronômetro + apontamento manual por semana |
+| Notificações | Abas Todas / Precisam de você / Clientes / Sistema |
+| Busca (Ctrl K) | Telas e ações recentes; busca por "corte" achou só "Conferir pranchas" |
+| Minha conta | Nome, assinatura manuscrita para contratos, senha, escritórios, tours, preferências de e-mail, **agenda (Google/Apple/Outlook) por link** |
+| Plano | Preços confirmados: **Autônomo R$ 67 · Escritório R$ 97 · Estúdio R$ 147 (+R$ 29/pessoa)**. Cotas grátis: 30 lançamentos, 3 orçamentos, 3 projetos, 1 convite, 5 usos de IA, 3 apresentações publicadas |
+| Indique e ganhe | 20% do 1º pagamento do indicado, via Pix |
+
+### Projeto exemplo — gerar documentos
+
+- "Gerar quadro de áreas" abre o aviso **"Usar a Planta"**; com "Agora não", **nada é gerado**.
+  O exemplo não regenera documentos a partir do IFC: fica preso entre as duas fontes (achado de UX).
+  Não troquei a fonte para não degradar o exemplo de forma irreversível.
+
+### Novo projeto (assistente de 6 passos) — Verificado
+
+1. Tipo: Construção nova · Reforma · Interiores · Regularização (ou partir de 15 projetos-modelo).
+2. Origem: desenhar · IFC · DWG/DXF · gerar estudo · trazer depois.
+3. Lote: município (lista de todos os municípios do IBGE), zona, área. **Bug:** o filtro da lista não respondeu ao texto digitado.
+4. Tipologia: unifamiliar · multifamiliar · comercial.
+5. Interiores sim/não.
+6. Nome, cliente, responsável técnico, padrão dimensional, nº de moradores.
+
+### Editor — testes reais
+
+| Teste | Resultado | Status |
+|---|---|---|
+| Atalho digitado "WA" | **Não ativou a parede**: as teclas foram lidas uma a uma (trocou para a aba Estudo e o estilo para "Estrutura de arame") | Falha (via automação) |
+| Parede pelo botão | Barra de comando com **Distância, Ângulo, Espessura**, trava angular, Orto (F8), "a partir de", paralela (OF). Traçado só Linha ou Arco | Verificado |
+| Distância digitada | 1º segmento saiu com **6,00 m exatos**; nos seguintes a direção seguiu o último movimento do mouse, gerando paredes tortas | Parcial |
+| Contorno por cliques | 4 paredes de 15 cm com **cantos unidos automaticamente** | Verificado |
+| Propriedades da parede | Restrição de base/topo, altura 2,92 m, comprimento 6,03 m, área, volume, fases, material, parâmetros; cota temporária | Verificado |
+| Barra Modificar | Mover, copiar, girar, espelhar, matriz, aparar, dividir, alinhar, fixar, excluir, criar bloco/similar, filtro | Verificado (presença) |
+| Ambiente (clique dentro) | Detecção automática do recinto: **15,57 m²** pela face interna | Verificado |
+| Porta | Prévia na parede com cota até o canto, largura 0,80, offset, Espaço inverte; **vão real** e arco de giro | Verificado |
+| Janela | Inserida com vão na parede | Verificado |
+| Desfazer | Ctrl+Z desfez paredes corretamente | Verificado |
+| Enquadrar | Menu de zoom: enquadrar tudo (Shift+1), seleção (Shift+2), 25–400%, grade, wireframe, fundo escuro | Verificado |
+| Corte | Linha de corte "A" com chamada e direção ("olhar para"); aparece no Navegador como **Corte AA** | Verificado (criação) |
+
+### Documentação gerada no projeto de teste (~20 s)
+
+| Documento | Resultado | Status |
+|---|---|---|
+| Quadro de áreas | Construída 19,12 m², útil 15,57 m², **TO 6,4%** (= 19,12/300), CA 0,05; checklist "pronto para protocolo" 3 de 6 | Verificado, números corretos |
+| Quantitativos | 1 ambiente, 2 esquadrias | Verificado |
+| Memorial | 13 seções NBR 13532, revisão seção a seção. Fundações remete ao projeto estrutural (não inventa). Esquadrias lista corretamente **Janela 1,20×1,20 e Porta 0,80×2,10**. Trechos de IA rotulados "Escrito pela IA, confira" | Verificado |
+| Caderno | 3 lacunas, 2 a confirmar | Verificado |
+| Conformidade | Em São Paulo: "Nenhuma regra se aplicou · informe zona e lote" → **sem regras fora de Florianópolis** | Verificado |
+| Pranchas | 5 pranchas A3 1:50 desenhadas **no navegador**, salvas como **SVG** (uma por folha) + **PDF**; modelo salvo como `Planta do Croqui.json` (1,4 KB) | Verificado |
+| Prévia de prancha em Documentos | **Imagem quebrada**: arquivo em Cloudflare R2 (link assinado) não carregou | Falha (bug) |
+
+### 3D e IA
+
+| Teste | Resultado | Status |
+|---|---|---|
+| 3D da planta desenhada | Paredes, piso, **vãos de porta e janela** corretos; sem cobertura (não desenhada) | Verificado |
+| Ferramentas 3D | Corte, medir, câmeras, estilo Realista, **explodir pavimentos**, sol e sombras, balde de material, nível de detalhe, 9 vistas ortogonais/isométricas | Verificado (presença) |
+| Qualidade 3D | Automático · Compacto · Padrão · Apresentação (sombras nítidas + oclusão de ambiente) | Verificado |
+| Capturar imagem | Captura raster da tela 3D até 4× (4.860×2.060), JPEG ou PNG transparente — **não é render fotorrealista** | Verificado (não baixado) |
+| IA · Render | **"Indisponível agora. A IA não está ligada neste ambiente (falta a chave do serviço de IA)"** | **Falha em produção** |
+| IA · Sugerir layout | Exige tipo de ambiente; após definir "Sala de estar", ficou **>5 min "Sugerindo"** e mostrou "Não foi possível conectar ao servidor" (prometido: até 1 min) | **Falha** |
+| Painel IA | Render, Decorar foto, Gerar planta, Planta da foto, Sugerir layout, Família da foto, Preencher moodboard; cota grátis: 2 imagens/mês | Verificado (presença) |
+
+### Pendente desta rodada
+
+Vista do Corte AA, elevações/fachadas, cotas, escada e telhado, exportação (diálogo já visto), Estudos
+(assistente completo), Reforma, Biblioteca (importação), Financeiro (propostas e contrato), Compartilhar/Publicar
+(até antes do envio) e versão mobile.
+
+## Planos (site e app, 2026-11-08)
+
+Grátis (3 projetos, sem cartão) · **Autônomo R$ 67/mês** (1 pessoa, 3 projetos ativos, 10 GB) ·
+**Escritório R$ 97/mês** (até 5 pessoas, ilimitado, 200 GB, gestão completa) · **Estúdio R$ 147/mês**
+(até 12 + R$ 29/pessoa extra, 500 GB, permissão por pessoa). Pagamento por Pix ou cartão.
+Oferta de fundador: 10% por 12 meses até 15/12.
 
 ## Conclusões para o Traço
 
