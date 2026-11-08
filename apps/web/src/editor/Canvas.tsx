@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { inflateBox } from '@traco/core';
-import { useEditor, visibleEntitiesIn } from './store.ts';
+import { levelWallGeometry, useEditor, visibleEntitiesIn } from './store.ts';
 import { controller } from './controller.ts';
 import { readTheme, renderScene, SNAP_LABEL } from './render.ts';
 import { viewBox } from './viewport.ts';
@@ -44,6 +44,7 @@ export const Canvas = () => {
         gridVisible: st.gridVisible,
         units: p.settings.units,
         theme,
+        wallGeom: levelWallGeometry(),
       });
       const tip = tipRef.current;
       if (tip) {

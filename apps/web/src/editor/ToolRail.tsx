@@ -19,6 +19,10 @@ import {
   CornerDownRight,
   Crosshair,
   LandPlot,
+  DoorOpen,
+  AppWindow,
+  Layers2,
+  House,
 } from 'lucide-react';
 import { type ToolId, useEditor } from './store.ts';
 import { controller } from './controller.ts';
@@ -35,7 +39,13 @@ export const TOOL_GROUPS: { title: string; tools: ToolDef[] }[] = [
   { title: 'Seleção', tools: [{ id: 'select', label: 'Selecionar', icon: MousePointer2, alias: 'V' }] },
   {
     title: 'Arquitetura',
-    tools: [{ id: 'wall', label: 'Parede', icon: BrickWall, alias: 'W' }],
+    tools: [
+      { id: 'wall', label: 'Parede', icon: BrickWall, alias: 'W' },
+      { id: 'door', label: 'Porta', icon: DoorOpen, alias: 'PT' },
+      { id: 'window', label: 'Janela', icon: AppWindow, alias: 'JN' },
+      { id: 'slab', label: 'Piso', icon: Layers2, alias: 'PI' },
+      { id: 'roof', label: 'Cobertura (duas águas)', icon: House, alias: 'COB' },
+    ],
   },
   {
     title: 'Desenho',

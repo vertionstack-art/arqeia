@@ -21,7 +21,11 @@ import {
 } from '../geometry/vec.js';
 import { type BBox, boxFromPoints, inflateBox } from '../geometry/bbox.js';
 import { type Prim, lineLineParams } from '../geometry/intersect.js';
-import type { Entity, WallEntity, PolylineEntity, TextEntity, DimensionEntity, ArcEntity } from './types.js';
+import type { Entity, WallEntity, PolylineEntity, TextEntity, DimensionEntity, ArcEntity, RoofEntity } from './types.js';
+import { roofGeometry } from './bim.js';
+
+/** Contorno de planta da cobertura (com beiral); cai para os pontos se for inválida. */
+export const roofOutline = (r: RoofEntity): Vec2[] => roofGeometry(r)?.outline ?? r.points;
 
 // ---------------------------------------------------------------------------
 // Geometria derivada
@@ -105,6 +109,11 @@ export const entityPrims = (e: Entity): Prim[] => {
         { kind: 'seg', a: p3, b: p0 },
       ];
     }
+    case 'slab':
+    case 'roof': {
+      const pts = e.type === 'roof' ? roofOutline(e) : e.points;
+      return polyEdges(pts, true).map(([a, b]) => ({ kind: 'seg' as const, a, b }));
+    }
     case 'dimension':
     case 'text':
       return [];
@@ -133,6 +142,10 @@ export const entityBBox = (e: Entity): BBox => {
       return arcBBox(e.c, e.r, e.start, e.end);
     case 'wall':
       return boxFromPoints(wallOutline(e));
+    case 'slab':
+      return boxFromPoints(e.points);
+    case 'roof':
+      return boxFromPoints(roofOutline(e));
     case 'text':
       return boxFromPoints(textBox(e));
     case 'dimension': {
@@ -236,6 +249,15 @@ export const entitySnapPoints = (e: Entity): SnapPoint[] => {
       out.push({ kind: 'midpoint', p: add(e.c, fromPolar(e.r, e.start + arcSweep(e.start, e.end) / 2)) });
       break;
     }
+    case 'slab':
+      pushSegs(polyEdges(e.points, true));
+      break;
+    case 'roof': {
+      pushSegs(polyEdges(roofOutline(e), true));
+      const rg = roofGeometry(e);
+      if (rg) pushSegs([rg.ridge]);
+      break;
+    }
     case 'text':
       out.push({ kind: 'endpoint', p: e.p });
       break;
@@ -271,8 +293,8 @@ export const scaleEntity = <E extends Entity>(e: E, c: Vec2, f: number): E => {
     case 'dimension':
       return { ...moved, offset: moved.offset * f };
     case 'wall':
-      // espessura e altura são parâmetros construtivos: não escalam implicitamente
-      return moved;
+      // espessura, altura e vãos são parâmetros construtivos: só a posição dos vãos acompanha o comprimento
+      return moved.openings ? { ...moved, openings: moved.openings.map((o) => ({ ...o, offset: o.offset * f })) } : moved;
     default:
       return moved;
   }
@@ -287,6 +309,9 @@ export const mirrorEntity = <E extends Entity>(e: E, a: Vec2, b: Vec2): E => {
       return { ...m, start: normAngle(2 * axis - (e as ArcEntity).end), end: normAngle(2 * axis - (e as ArcEntity).start) };
     case 'dimension':
       return { ...m, offset: -m.offset };
+    case 'wall':
+      // a reflexão troca o lado de abertura das portas
+      return m.openings ? { ...m, openings: m.openings.map((o) => ({ ...o, side: (o.side === 1 ? -1 : 1) as 1 | -1 })) } : m;
     case 'text':
       // texto espelhado mantém legibilidade (comportamento MIRRTEXT=0)
       return { ...m, p: mirrorAcross((e as TextEntity).p, a, b) };
@@ -302,6 +327,8 @@ const mapPoints = <E extends Entity>(e: E, f: (p: Vec2) => Vec2): E => {
     case 'dimension':
       return { ...e, a: f(e.a), b: f(e.b) };
     case 'polyline':
+    case 'slab':
+    case 'roof':
       return { ...e, points: e.points.map(f) };
     case 'circle':
     case 'arc':
@@ -347,6 +374,10 @@ export const measureEntity = (e: Entity): Measure => {
       return { length: e.r * arcSweep(e.start, e.end) };
     case 'dimension':
       return { length: dist(e.a, e.b) };
+    case 'slab':
+      return { area: polygonArea(e.points), perimeter: polylineLength(e.points, true) };
+    case 'roof':
+      return { area: polygonArea(roofOutline(e)) };
     case 'text':
       return {};
   }
@@ -361,6 +392,9 @@ export const explodeEntity = (e: Entity, makeId: () => string): Entity[] | null 
   const base = { layerId: e.layerId, levelId: e.levelId };
   if (e.type === 'polyline') {
     return polyEdges(e.points, e.closed).map(([a, b]) => ({ ...base, id: makeId(), type: 'line', a, b }));
+  }
+  if (e.type === 'slab') {
+    return polyEdges(e.points, true).map(([a, b]) => ({ ...base, id: makeId(), type: 'line', a, b }));
   }
   if (e.type === 'wall') {
     return polyEdges(wallOutline(e), true).map(([a, b]) => ({ ...base, id: makeId(), type: 'line', a, b }));
@@ -441,6 +475,8 @@ export const entityLabel: Record<Entity['type'], string> = {
   text: 'Texto',
   dimension: 'Cota',
   wall: 'Parede',
+  slab: 'Piso',
+  roof: 'Cobertura',
 };
 
 export const segmentLength = (a: Vec2, b: Vec2): number => len(sub(b, a));

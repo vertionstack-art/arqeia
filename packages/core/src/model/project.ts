@@ -33,6 +33,8 @@ export const DEFAULT_LAYERS: Omit<Layer, 'id'>[] = [
   { name: 'ARQ-COTAS', color: '#ffb547', lineWeight: 0.18, visible: true, locked: false },
   { name: 'ARQ-TEXTOS', color: '#c9d3e6', lineWeight: 0.18, visible: true, locked: false },
   { name: 'ARQ-TERRENO', color: '#7cd992', lineWeight: 0.35, visible: true, locked: false },
+  { name: 'ARQ-PISOS', color: '#8a9bb8', lineWeight: 0.18, visible: true, locked: false },
+  { name: 'ARQ-COBERTURA', color: '#ff7a59', lineWeight: 0.25, visible: true, locked: false },
 ];
 
 export const createProject = (input: NewProjectInput): Project => {

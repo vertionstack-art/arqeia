@@ -16,6 +16,10 @@ import {
   norm,
   perp,
   mul,
+  type WallGeometry,
+  openingSymbol,
+  wallPiecePolygon,
+  roofGeometry,
 } from '@traco/core';
 import { type Size, toScreen, niceGridStep, viewBox } from './viewport.ts';
 import type { View } from './store.ts';
@@ -66,6 +70,8 @@ export interface Scene {
   gridVisible: boolean;
   units: LengthUnit;
   theme: Theme;
+  /** Geometria unida das paredes do pavimento (junções e vãos). */
+  wallGeom: Map<Id, WallGeometry>;
 }
 
 /** Cor do layer adaptada ao fundo (branco vira navy no modo "papel"). */
@@ -96,7 +102,7 @@ export const renderScene = (ctx: CanvasRenderingContext2D, s: Scene): void => {
     ctx.fillStyle = color;
     ctx.lineWidth = width;
     ctx.setLineDash(mode === 'preview' ? [6, 4] : []);
-    drawEntity(ctx, e, S, view.zoom, s.units, mode);
+    drawEntity(ctx, e, S, view.zoom, s.units, mode, 'id' in e ? s.wallGeom.get(e.id) : undefined);
   };
 
   // entidades normais
@@ -155,6 +161,7 @@ const drawEntity = (
   zoom: number,
   units: LengthUnit,
   mode: 'normal' | 'selected' | 'preview',
+  geom?: WallGeometry,
 ) => {
   switch (e.type) {
     case 'line':
@@ -174,6 +181,10 @@ const drawEntity = (
       ctx.stroke();
       break;
     case 'wall': {
+      if (geom) {
+        drawJoinedWall(ctx, geom, S, mode);
+        break;
+      }
       const pts = wallOutline(e).map(S);
       poly(ctx, pts, true);
       ctx.save();
@@ -190,6 +201,51 @@ const drawEntity = (
         line(ctx, S(e.a), S(e.b));
         ctx.restore();
       }
+      break;
+    }
+    case 'slab': {
+      poly(ctx, e.points.map(S), true);
+      ctx.save();
+      ctx.globalAlpha = mode === 'normal' ? 0.06 : 0.12;
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.setLineDash(mode === 'preview' ? [6, 4] : [2, 3]);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'roof': {
+      const rg = roofGeometry(e);
+      // projeção da cobertura: tracejado longo (convenção de elemento acima do plano de corte)
+      ctx.save();
+      ctx.setLineDash([12, 6]);
+      if (rg) {
+        poly(ctx, rg.outline.map(S), true);
+        ctx.stroke();
+        line(ctx, S(rg.ridge[0]), S(rg.ridge[1]));
+        // indicação de caimento: setas do meio da cumeeira para os beirais
+        ctx.setLineDash([]);
+        const m = { x: (rg.ridge[0].x + rg.ridge[1].x) / 2, y: (rg.ridge[0].y + rg.ridge[1].y) / 2 };
+        const [q0, q1, q2, q3] = rg.outline;
+        for (const edge of [
+          [q0, q1],
+          [q3, q2],
+        ]) {
+          const em = { x: (edge[0].x + edge[1].x) / 2, y: (edge[0].y + edge[1].y) / 2 };
+          const tip = { x: m.x + (em.x - m.x) * 0.6, y: m.y + (em.y - m.y) * 0.6 };
+          arrow(ctx, S({ x: m.x + (em.x - m.x) * 0.2, y: m.y + (em.y - m.y) * 0.2 }), S(tip));
+        }
+        if (zoom * 250 > 6) {
+          ctx.font = `${Math.min(14, zoom * 250)}px var(--font-mono, monospace)`;
+          ctx.textAlign = 'center';
+          ctx.fillText(`i = ${e.pitch}%`, S(m).x, S(m).y - 6);
+        }
+      } else {
+        poly(ctx, e.points.map(S), true);
+        ctx.stroke();
+      }
+      ctx.restore();
       break;
     }
     case 'text': {
@@ -238,6 +294,56 @@ const drawEntity = (
   }
 };
 
+const arrow = (ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2) => {
+  line(ctx, a, b);
+  const d = norm(sub(b, a));
+  const n = perp(d);
+  const h = 7;
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - d.x * h + n.x * h * 0.45, b.y - d.y * h + n.y * h * 0.45);
+  ctx.lineTo(b.x - d.x * h - n.x * h * 0.45, b.y - d.y * h - n.y * h * 0.45);
+  ctx.closePath();
+  ctx.fill();
+};
+
+/** Parede com junções: trechos cheios entre os vãos, símbolos de porta/janela e vãos inválidos em vermelho. */
+const drawJoinedWall = (ctx: CanvasRenderingContext2D, g: WallGeometry, S: (p: Vec2) => Vec2, mode: 'normal' | 'selected' | 'preview') => {
+  for (const piece of g.pieces) {
+    poly(ctx, wallPiecePolygon(g, piece.s0, piece.s1).map(S), true);
+    ctx.save();
+    ctx.globalAlpha = mode === 'normal' ? 0.32 : 0.4;
+    ctx.fill();
+    ctx.restore();
+    ctx.stroke();
+  }
+  ctx.save();
+  ctx.lineWidth = Math.max(1, ctx.lineWidth - 1);
+  for (const r of g.openings) {
+    if (!r.valid) {
+      ctx.save();
+      ctx.strokeStyle = '#ff4d5e';
+      ctx.setLineDash([4, 3]);
+      const s0 = Math.max(0, Math.min(g.length, r.s0));
+      const s1 = Math.max(0, Math.min(g.length, r.s1));
+      poly(ctx, wallPiecePolygon(g, s0, s1).map(S), true);
+      ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    const sym = openingSymbol(g, r);
+    for (const [a, b] of sym.lines) line(ctx, S(a), S(b));
+    for (const arc of sym.arcs) {
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      arcPath(ctx, S(arc.c), arc.r * Math.abs(S({ x: 1, y: 0 }).x - S({ x: 0, y: 0 }).x), arc.start, arc.end);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+};
+
 const grip = (ctx: CanvasRenderingContext2D, p: Vec2) => {
   ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
 };
@@ -252,6 +358,8 @@ const drawGrips = (ctx: CanvasRenderingContext2D, e: Entity, S: (p: Vec2) => Vec
     case 'dimension':
       pts.push(e.a, e.b);
       break;
+    case 'slab':
+    case 'roof':
     case 'polyline':
       pts.push(...e.points);
       break;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, Plus, Trash2, Loader2, ServerCrash, FolderOpen, Box, FileText, Library, Clapperboard, Sparkles, Plug } from 'lucide-react';
+import { ArrowUpRight, Plus, Trash2, Loader2, ServerCrash, FolderOpen, FileText, Library, Clapperboard, Sparkles, Plug } from 'lucide-react';
 import { api, type ProjectSummary } from '../api/client.ts';
 import { authEnabled } from '../auth/supabase.ts';
 import { NewProjectDialog } from './NewProjectDialog.tsx';
@@ -8,7 +8,6 @@ import { ThemeToggle } from '../ui/ThemeToggle.tsx';
 import { UserMenu } from '../ui/UserMenu.tsx';
 
 const ROADMAP = [
-  { icon: Box, title: 'Editor 3D', desc: 'Paredes viram volume, com vãos reais de portas e janelas.', phase: 'Fase 3' },
   { icon: FileText, title: 'Documentação', desc: 'Plantas, cortes, fachadas N/L/S/O e pranchas derivadas do modelo.', phase: 'Fase 4' },
   { icon: Library, title: 'Biblioteca e importação', desc: 'DXF, IFC, GLB/GLTF, OBJ, STL e imagens de referência.', phase: 'Fase 5' },
   { icon: Plug, title: 'Integrações desktop', desc: 'AutoCAD, Revit, SketchUp e Archicad via plugins nativos.', phase: 'Fase 6' },

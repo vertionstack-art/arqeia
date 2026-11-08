@@ -6,6 +6,7 @@ export * from './model/types.js';
 export * from './model/project.js';
 export * from './model/entities.js';
 export * from './model/edit.js';
+export * from './model/bim.js';
 export * from './spatial.js';
 export * from './snap.js';
 export * from './history.js';

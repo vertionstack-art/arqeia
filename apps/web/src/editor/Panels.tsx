@@ -3,6 +3,8 @@ import { Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import {
   type Entity,
   type Layer,
+  type Opening,
+  type WallEntity,
   type Level,
   type Vec2,
   angleOf,
@@ -18,6 +20,9 @@ import {
   updateEntity,
   UNIT_LABEL,
   PROJECT_TYPES,
+  openingIssues,
+  roofGeometry,
+  wallQuantities,
 } from '@traco/core';
 import { useEditor } from './store.ts';
 import { LengthField, NumberField, ReadOut, TextField } from './fields.tsx';
@@ -77,6 +82,40 @@ const EntityProps = ({ e }: { e: Entity }) => {
           <>
             <LengthField label="Espessura" mm={e.thickness} units={units} min={0} onCommit={(thickness) => set({ thickness })} />
             <LengthField label="Altura" mm={e.height} units={units} min={0} onCommit={(height) => set({ height })} />
+            <LengthField label="Deslocamento da base" mm={e.baseOffset ?? 0} units={units} onCommit={(baseOffset) => set({ baseOffset })} />
+            <OpeningsEditor w={e} />
+          </>
+        )}
+        {e.type === 'slab' && (
+          <>
+            <LengthField label="Espessura" mm={e.thickness} units={units} min={0} onCommit={(thickness) => set({ thickness })} />
+            <LengthField label="Face superior (rel. ao pavimento)" mm={e.offset} units={units} onCommit={(offset) => set({ offset })} />
+            <details className="vertices">
+              <summary>{e.points.length} vértices</summary>
+              {e.points.slice(0, 64).map((p, i) => (
+                <PointFields key={i} label={`V${i + 1}`} p={p} onChange={(np) => set({ points: e.points.map((q, j) => (j === i ? np : q)) })} />
+              ))}
+            </details>
+          </>
+        )}
+        {e.type === 'roof' && (
+          <>
+            <NumberField label="Inclinação" suffix="%" value={e.pitch} onCommit={(pitch) => pitch >= 0 && pitch <= 400 && set({ pitch })} />
+            <LengthField label="Beiral" mm={e.overhang} units={units} min={0} onCommit={(overhang) => set({ overhang })} />
+            <LengthField label="Altura dos beirais (sobre o pavimento)" mm={e.baseOffset} units={units} onCommit={(baseOffset) => set({ baseOffset })} />
+            <LengthField label="Espessura" mm={e.thickness} units={units} min={0} onCommit={(thickness) => set({ thickness })} />
+            {(() => {
+              const rg = roofGeometry(e);
+              return rg ? (
+                <>
+                  <ReadOut label="Cumeeira (sobre o pavimento)" value={formatLength(rg.ridgeZ, units)} />
+                  <ReadOut label="Ângulo" value={`${deg(Math.atan(e.pitch / 100)).toFixed(1)}°`} />
+                  <ReadOut label="Vão entre beirais" value={formatLength(rg.span, units)} />
+                </>
+              ) : (
+                <p className="note error">Contorno inválido: a cobertura precisa de 4 vértices.</p>
+              );
+            })()}
           </>
         )}
         {e.type === 'dimension' && (
@@ -132,10 +171,81 @@ const EntityProps = ({ e }: { e: Entity }) => {
         {m.area !== undefined && <ReadOut label="Área" value={formatArea(m.area, units)} />}
         {m.perimeter !== undefined && <ReadOut label="Perímetro" value={formatLength(m.perimeter, units)} />}
       </div>
-      {e.type === 'wall' && (
-        <p className="note">Paredes já guardam altura e espessura reais; aberturas e geometria 3D chegam na Fase 3.</p>
-      )}
+      {e.type === 'wall' && <WallQuantitiesView w={e} />}
     </div>
+  );
+};
+
+const WallQuantitiesView = ({ w }: { w: WallEntity }) => {
+  const units = useEditor((s) => s.project!.settings.units);
+  const q = wallQuantities(w);
+  return (
+    <div className="measures">
+      <ReadOut label="Área bruta (1 face)" value={formatArea(q.grossArea, units)} />
+      <ReadOut label="Área líquida (sem vãos)" value={formatArea(q.netArea, units)} />
+      <ReadOut label="Volume" value={`${(q.volume / 1e9).toFixed(3)} m³`} />
+      <ReadOut label="Portas / janelas" value={`${q.doors} / ${q.windows}`} />
+    </div>
+  );
+};
+
+const OPENING_LABEL: Record<Opening['kind'], string> = { door: 'Porta', window: 'Janela' };
+
+/** Lista e edita as aberturas hospedadas na parede (cada mudança é uma transação desfazível). */
+const OpeningsEditor = ({ w }: { w: WallEntity }) => {
+  const units = useEditor((s) => s.project!.settings.units);
+  const commit = useEditor((s) => s.commit);
+  const ops = w.openings ?? [];
+  const issues = new Map(openingIssues(w).map((i) => [i.openingId, i.message]));
+  const patch = (o: Opening, change: Partial<Opening>, label: string) =>
+    commit(label, [updateEntity(w, { ...w, openings: ops.map((x) => (x.id === o.id ? { ...x, ...change } : x)) })]);
+  const remove = (o: Opening) => commit(`Remover ${OPENING_LABEL[o.kind].toLowerCase()}`, [updateEntity(w, { ...w, openings: ops.filter((x) => x.id !== o.id) })]);
+  if (!ops.length) return <p className="note">Sem aberturas. Use Porta (PT) ou Janela (JN) e clique na parede.</p>;
+  return (
+    <details className="vertices" open>
+      <summary>
+        {ops.length} abertura(s){issues.size ? ` · ${issues.size} com problema` : ''}
+      </summary>
+      {ops.map((o, i) => (
+        <div className="opening-card" key={o.id}>
+          <div className="opening-head">
+            <strong>
+              {OPENING_LABEL[o.kind]} {i + 1}
+            </strong>
+            <button className="icon-btn" onClick={() => remove(o)} aria-label={`Remover ${OPENING_LABEL[o.kind]} ${i + 1}`} title="Remover">
+              <Trash2 size={14} />
+            </button>
+          </div>
+          {issues.has(o.id) && <p className="note error">{issues.get(o.id)}: o vão não é recortado até ser corrigido.</p>}
+          <div className="field-pair">
+            <LengthField label="Largura" mm={o.width} units={units} min={0} onCommit={(width) => patch(o, { width }, 'Largura do vão')} />
+            <LengthField label="Altura" mm={o.height} units={units} min={0} onCommit={(height) => patch(o, { height }, 'Altura do vão')} />
+          </div>
+          <div className="field-pair">
+            <LengthField label="Centro (desde o início)" mm={o.offset} units={units} onCommit={(offset) => patch(o, { offset }, 'Posição do vão')} />
+            <LengthField label="Peitoril" mm={o.sill} units={units} min={0} onCommit={(sill) => patch(o, { sill }, 'Peitoril')} />
+          </div>
+          {o.kind === 'door' && (
+            <div className="field-pair">
+              <label className="field">
+                <span>Dobradiça</span>
+                <select value={o.hinge} onChange={(ev) => patch(o, { hinge: ev.target.value as Opening['hinge'] }, 'Dobradiça da porta')}>
+                  <option value="start">Lado do início</option>
+                  <option value="end">Lado do fim</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Abre para</span>
+                <select value={o.side} onChange={(ev) => patch(o, { side: Number(ev.target.value) as 1 | -1 }, 'Lado de abertura')}>
+                  <option value={1}>Esquerda do eixo</option>
+                  <option value={-1}>Direita do eixo</option>
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+      ))}
+    </details>
   );
 };
 

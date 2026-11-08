@@ -33,14 +33,26 @@ import {
   trimEntity,
   updateEntity,
   newId,
+  type Opening,
+  type WallEntity,
+  openingFits,
+  placeOpening,
+  perp,
+  dot,
 } from '@traco/core';
-import type { ToolId } from './store.ts';
+import type { OpeningDefaults, ToolId } from './store.ts';
 
 export interface ToolCtx {
   units: LengthUnit;
   levelId: Id;
   /** Layer onde a ferramenta deve criar (pode ser um layer padrão da categoria). */
-  layerFor(kind: 'default' | 'wall' | 'dimension' | 'text'): Id | null;
+  layerFor(kind: 'default' | 'wall' | 'dimension' | 'text' | 'slab' | 'roof'): Id | null;
+  /** Parede editável sob o ponto (no pavimento ativo), ou null. */
+  pickWall(p: Vec2): WallEntity | null;
+  doorDefaults: OpeningDefaults;
+  windowDefaults: OpeningDefaults;
+  slabDefaults: { thickness: number };
+  roofDefaults: { pitch: number; overhang: number; thickness: number };
   selection(): Entity[];
   commit(label: string, changes: Change[]): void;
   setSelection(ids: Id[]): void;
@@ -798,6 +810,200 @@ class AreaTool extends Tool {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Elementos BIM
+// ---------------------------------------------------------------------------
+
+/** Porta ou janela: hospeda o vão na parede sob o cursor. */
+class OpeningTool extends Tool {
+  readonly label: string;
+  options = ['f', 'd'];
+  private wall: WallEntity | null = null;
+  private offset: number | null = null;
+  private side: 1 | -1 = 1;
+  private hinge: Opening['hinge'] = 'start';
+  private dims: OpeningDefaults;
+  constructor(
+    readonly id: 'door' | 'window',
+    private ctx: ToolCtx,
+  ) {
+    super();
+    this.label = id === 'door' ? 'Porta' : 'Janela';
+    this.dims = { ...(id === 'door' ? ctx.doorDefaults : ctx.windowDefaults) };
+  }
+  get prompt() {
+    const w = formatLength(this.dims.width, this.ctx.units);
+    const extra = this.id === 'door' ? ' · F inverte o lado · D troca a dobradiça' : '';
+    return `Clique na parede (largura ${w}; digite outra largura)${extra}`;
+  }
+  onMove(p: Vec2) {
+    this.cursor = p;
+    this.wall = this.ctx.pickWall(p);
+    this.offset = this.wall ? placeOpening(this.wall, p, this.dims.width) : null;
+    if (this.wall && this.id === 'door') {
+      // abre para o lado em que está o cursor
+      const d = norm(sub(this.wall.b, this.wall.a));
+      this.side = dot(sub(p, this.wall.a), perp(d)) >= 0 ? 1 : -1;
+    }
+  }
+  onPoint(p: Vec2, ctx: ToolCtx) {
+    this.onMove(p);
+    const w = this.wall;
+    if (!w) return ctx.message('Clique sobre uma parede para inserir a abertura.', 'error');
+    if (this.offset === null) return ctx.message('A parede é mais curta que a abertura.', 'error');
+    if (!openingFits(w, this.offset, this.dims.width)) return ctx.message('Não cabe: o vão sobrepõe outra abertura.', 'error');
+    if (this.dims.sill + this.dims.height > w.height) return ctx.message('A abertura ultrapassa a altura da parede.', 'error');
+    const o: Opening = { id: newId('op'), kind: this.id, offset: this.offset, ...this.dims, hinge: this.hinge, side: this.side };
+    ctx.commit(this.label, [updateEntity(w, { ...w, openings: [...(w.openings ?? []), o] })]);
+    ctx.setSelection([w.id]);
+  }
+  onInput(text: string, ctx: ToolCtx) {
+    const t = text.trim().toLowerCase();
+    if (t === 'f') {
+      this.side = this.side === 1 ? -1 : 1;
+      return true;
+    }
+    if (t === 'd') {
+      this.hinge = this.hinge === 'start' ? 'end' : 'start';
+      ctx.message(`Dobradiça no lado do ${this.hinge === 'start' ? 'início' : 'fim'} do vão.`);
+      return true;
+    }
+    const r = parseLength(t, ctx.units);
+    if (r === null || !(r > 0)) {
+      ctx.message('Digite a largura do vão (ex.: 0,9 ou 90cm).', 'error');
+      return true;
+    }
+    this.dims.width = r;
+    ctx.message(`Largura do vão: ${formatLength(r, ctx.units)}`);
+    return true;
+  }
+  preview(): Preview {
+    const w = this.wall;
+    if (!w || this.offset === null) return emptyPreview();
+    const d = norm(sub(w.b, w.a));
+    const n = mul(perp(d), w.thickness / 2 + 60);
+    const c0 = add(w.a, mul(d, this.offset - this.dims.width / 2));
+    const c1 = add(w.a, mul(d, this.offset + this.dims.width / 2));
+    const box: Vec2[] = [add(c0, n), add(c1, n), sub(c1, n), sub(c0, n)];
+    const guides: [Vec2, Vec2][] = box.map((q, i) => [q, box[(i + 1) % 4]] as [Vec2, Vec2]);
+    if (this.id === 'door') {
+      const hingeAt = this.hinge === 'start' ? c0 : c1;
+      guides.push([hingeAt, add(hingeAt, mul(perp(d), this.side * this.dims.width))]);
+    }
+    return { drafts: [], guides, highlight: [w.id] };
+  }
+}
+
+/** Piso: contorno fechado por pontos (Enter ou clique no primeiro ponto fecha). */
+class SlabTool extends Tool {
+  readonly id = 'slab';
+  readonly label = 'Piso';
+  private pts: Vec2[] = [];
+  get base() {
+    return this.pts.at(-1) ?? null;
+  }
+  get prompt() {
+    return this.pts.length < 3 ? `Vértices do contorno do piso (${this.pts.length})` : 'Próximo vértice — Enter ou clique no 1º ponto fecha';
+  }
+  onPoint(p: Vec2, ctx: ToolCtx) {
+    if (this.pts.length >= 3 && dist(p, this.pts[0]) <= 1) {
+      this.finish(ctx);
+      return;
+    }
+    if (this.pts.length && dist(p, this.pts.at(-1)!) < 1e-6) return;
+    this.pts.push(p);
+  }
+  private finish(ctx: ToolCtx) {
+    if (this.pts.length < 3) return;
+    if (polygonArea(this.pts) < 1) {
+      ctx.message('Contorno sem área.', 'error');
+      this.pts = [];
+      return;
+    }
+    const layerId = requireLayer(ctx, 'slab');
+    if (layerId) create(ctx, 'Piso', [{ type: 'slab', layerId, points: this.pts, thickness: ctx.slabDefaults.thickness, offset: 0 }]);
+    this.pts = [];
+  }
+  onEnter(ctx: ToolCtx) {
+    const had = this.pts.length > 0;
+    this.finish(ctx);
+    return !had;
+  }
+  onEscape() {
+    const had = this.pts.length > 0;
+    this.pts = [];
+    return !had;
+  }
+  preview(): Preview {
+    if (!this.pts.length) return emptyPreview();
+    const pts = this.cursor ? [...this.pts, this.cursor] : this.pts;
+    if (pts.length >= 3) return { drafts: [{ type: 'slab', layerId: '', points: pts, thickness: 100, offset: 0 }], guides: [], highlight: [] };
+    if (pts.length === 2) return { drafts: [{ type: 'line', layerId: '', a: pts[0], b: pts[1] }], guides: [], highlight: [] };
+    return emptyPreview();
+  }
+}
+
+/** Cobertura de duas águas: dois cantos na linha do beiral (direção da cumeeira) e o lado oposto. */
+class RoofTool extends Tool {
+  readonly id = 'roof';
+  readonly label = 'Cobertura';
+  done = false;
+  private p0: Vec2 | null = null;
+  private p1: Vec2 | null = null;
+  constructor(private wallHeight: number) {
+    super();
+  }
+  get base() {
+    return this.p1 ?? this.p0;
+  }
+  get prompt() {
+    if (!this.p0) return 'Primeiro canto (face externa das paredes)';
+    if (!this.p1) return 'Segundo canto: a cumeeira fica paralela a este lado';
+    return 'Lado oposto (largura do vão)';
+  }
+  private rect(p2: Vec2): Vec2[] | null {
+    if (!this.p0 || !this.p1) return null;
+    const u = sub(this.p1, this.p0);
+    const n = perp(norm(u));
+    const depth = dot(sub(p2, this.p1), n);
+    if (Math.abs(depth) < 1) return null;
+    const off = mul(n, depth);
+    return [this.p0, this.p1, add(this.p1, off), add(this.p0, off)];
+  }
+  onPoint(p: Vec2, ctx: ToolCtx) {
+    if (!this.p0) {
+      this.p0 = p;
+      return;
+    }
+    if (!this.p1) {
+      if (dist(p, this.p0) < 1) return;
+      this.p1 = p;
+      return;
+    }
+    const pts = this.rect(p);
+    if (!pts) return ctx.message('Largura nula.', 'error');
+    const layerId = requireLayer(ctx, 'roof');
+    if (layerId) {
+      const { pitch, overhang, thickness } = ctx.roofDefaults;
+      create(ctx, 'Cobertura', [{ type: 'roof', layerId, points: pts, pitch, overhang, thickness, baseOffset: this.wallHeight }]);
+    }
+    this.p0 = this.p1 = null;
+    this.done = true;
+  }
+  onEscape() {
+    const had = !!this.p0;
+    this.p0 = this.p1 = null;
+    return !had;
+  }
+  preview(): Preview {
+    if (!this.p0 || !this.cursor) return emptyPreview();
+    if (!this.p1) return { drafts: [{ type: 'line', layerId: '', a: this.p0, b: this.cursor }], guides: [], highlight: [] };
+    const pts = this.rect(this.cursor);
+    if (!pts) return emptyPreview();
+    return { drafts: [{ type: 'roof', layerId: '', points: pts, pitch: 30, overhang: 600, baseOffset: 0, thickness: 100 }], guides: [], highlight: [] };
+  }
+}
+
 export const createTool = (id: ToolId, ctx: ToolCtx): Tool | null => {
   let t: Tool | null = null;
   switch (id) {
@@ -812,6 +1018,16 @@ export const createTool = (id: ToolId, ctx: ToolCtx): Tool | null => {
       t = w;
       break;
     }
+    case 'door':
+    case 'window':
+      t = new OpeningTool(id, ctx);
+      break;
+    case 'slab':
+      t = new SlabTool();
+      break;
+    case 'roof':
+      t = new RoofTool(ctx.wallDefaults.height);
+      break;
     case 'polyline':
       t = new PolylineTool();
       break;
@@ -895,6 +1111,14 @@ export const COMMAND_ALIASES: Record<string, ToolId | 'erase' | 'explode' | 'und
   w: 'wall',
   par: 'wall',
   parede: 'wall',
+  pt: 'door',
+  porta: 'door',
+  jn: 'window',
+  janela: 'window',
+  pi: 'slab',
+  piso: 'slab',
+  cob: 'roof',
+  telhado: 'roof',
   dim: 'dimension',
   di: 'measure',
   dist: 'measure',

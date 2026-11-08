@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, CloudOff, History as HistoryIcon, Loader2, Redo2, Undo2, AlertTriangle, Maximize, Box, FileText, Clapperboard } from 'lucide-react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { ArrowLeft, Check, CloudOff, History as HistoryIcon, Loader2, Redo2, Undo2, AlertTriangle, Maximize, Box, FileText, Clapperboard, Map as MapIcon, Columns2 } from 'lucide-react';
 import type { Project } from '@traco/core';
 import { api, type RevisionSummary } from '../api/client.ts';
-import { useEditor } from './store.ts';
+import { type ViewMode, useEditor } from './store.ts';
+// o 3D (three.js) só é baixado quando a vista 3D é aberta
+const Viewer3D = lazy(() => import('./Viewer3D.tsx').then((m) => ({ default: m.Viewer3D })));
 import { controller } from './controller.ts';
 import { Canvas } from './Canvas.tsx';
 import { ToolRail } from './ToolRail.tsx';
@@ -157,13 +159,19 @@ const Banners = ({ draft, onDraftDone }: { draft: Draft | null; onDraftDone: () 
 
 type Tab = 'props' | 'layers' | 'levels';
 
+const VIEW_TABS: { id: ViewMode; label: string; icon: typeof Box; tip: string }[] = [
+  { id: 'plan', label: 'Planta 2D', icon: MapIcon, tip: 'Planta do pavimento ativo' },
+  { id: 'split', label: 'Planta + 3D', icon: Columns2, tip: 'Planta e 3D lado a lado, sincronizados' },
+  { id: '3d', label: '3D', icon: Box, tip: 'Modelo 3D derivado da planta' },
+];
+
 const SOON = [
-  { icon: Box, label: 'Editor 3D', phase: 'Fase 3' },
   { icon: FileText, label: 'Documentação', phase: 'Fase 4' },
   { icon: Clapperboard, label: 'Render Studio', phase: 'Fase 7' },
 ];
 
 export const Editor = ({ projectId }: { projectId: string }) => {
+  const viewMode = useEditor((s) => s.viewMode);
   const project = useEditor((s) => s.project);
   const canUndo = useEditor((s) => (s.historyTick, s.history.canUndo));
   const canRedo = useEditor((s) => (s.historyTick, s.history.canRedo));
@@ -225,12 +233,21 @@ export const Editor = ({ projectId }: { projectId: string }) => {
         <SaveBadge />
         <div className="topbar-spacer" />
         <div className="workspace-tabs" role="tablist" aria-label="Áreas de trabalho">
-          <button className="ws-tab is-active" role="tab" aria-selected>
-            Planta 2D
-          </button>
+          {VIEW_TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`ws-tab${viewMode === t.id ? ' is-active' : ''}`}
+              role="tab"
+              aria-selected={viewMode === t.id}
+              data-tip={t.tip}
+              onClick={() => useEditor.getState().set({ viewMode: t.id })}
+            >
+              <t.icon size={14} /> {t.label}
+            </button>
+          ))}
           {SOON.map((s) => (
             <button key={s.label} className="ws-tab" role="tab" aria-selected={false} disabled data-tip={`Ainda não disponível · ${s.phase}`}>
-              <s.icon size={14} /> {s.label}
+              <s.icon size={14} /> <span className="ws-label">{s.label}</span>
             </button>
           ))}
         </div>
@@ -259,7 +276,18 @@ export const Editor = ({ projectId }: { projectId: string }) => {
       <div className="editor-body">
         <ToolRail />
         <main className="stage">
-          <Canvas />
+          <div className={`views mode-${viewMode}`}>
+            <div className="view-plan">
+              <Canvas />
+            </div>
+            {viewMode !== 'plan' && (
+              <div className="view-3d">
+                <Suspense fallback={<div className="viewer3d viewer3d-loading">Carregando 3D…</div>}>
+                  <Viewer3D />
+                </Suspense>
+              </div>
+            )}
+          </div>
           <CommandLine />
         </main>
         <aside className="side-panel">

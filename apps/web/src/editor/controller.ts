@@ -16,6 +16,8 @@ import {
   removeEntity,
   unionBox,
   emptyBox,
+  entityDistance,
+  type WallEntity,
 } from '@traco/core';
 import { type ToolId, editableEntitiesIn, pickEntity, useEditor, visibleEntitiesIn } from './store.ts';
 import { type Tool, type ToolCtx, COMMAND_ALIASES, createTool, explodeSelection, isDone } from './tools.ts';
@@ -75,7 +77,7 @@ class EditorController {
       const l = p.layers.find((x) => x.id === id);
       return l && l.visible && !l.locked ? l.id : null;
     };
-    const named: Record<string, string> = { wall: 'ARQ-PAREDES', dimension: 'ARQ-COTAS', text: 'ARQ-TEXTOS' };
+    const named: Record<string, string> = { wall: 'ARQ-PAREDES', dimension: 'ARQ-COTAS', text: 'ARQ-TEXTOS', slab: 'ARQ-PISOS', roof: 'ARQ-COBERTURA' };
     return {
       units: p.settings.units,
       levelId: st.levelId,
@@ -98,6 +100,24 @@ class EditorController {
       pick: (pt) => pickEntity(pt, PICK_PX / useEditor.getState().view.zoom),
       visible: (around) => (around ? visibleEntitiesIn(inflateBox(entityBBox(around), 1)) : visibleEntitiesIn(ALL)),
       wallDefaults: st.wallDefaults,
+      doorDefaults: st.doorDefaults,
+      windowDefaults: st.windowDefaults,
+      slabDefaults: st.slabDefaults,
+      roofDefaults: st.roofDefaults,
+      pickWall: (pt) => {
+        const tol = PICK_PX / useEditor.getState().view.zoom;
+        let best: WallEntity | null = null;
+        let bestD = tol;
+        for (const e of editableEntitiesIn(inflateBox({ minX: pt.x, minY: pt.y, maxX: pt.x, maxY: pt.y }, tol))) {
+          if (e.type !== 'wall') continue;
+          const d = entityDistance(e, pt);
+          if (d <= bestD) {
+            bestD = d;
+            best = e;
+          }
+        }
+        return best;
+      },
       textHeight: st.textHeight,
       getOffset: () => useEditor.getState().offsetDistance,
       setOffset: (d) => useEditor.getState().set({ offsetDistance: d }),

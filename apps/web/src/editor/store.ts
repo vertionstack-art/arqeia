@@ -14,6 +14,11 @@ import {
   entityBBox,
   entityDistance,
   inflateBox,
+  migrateProject,
+  propagateWallJoins,
+  wallGeometry,
+  wallsOnLevel,
+  type WallGeometry,
 } from '@traco/core';
 
 export type ToolId =
@@ -24,6 +29,10 @@ export type ToolId =
   | 'circle'
   | 'arc'
   | 'wall'
+  | 'door'
+  | 'window'
+  | 'slab'
+  | 'roof'
   | 'dimension'
   | 'text'
   | 'move'
@@ -45,6 +54,14 @@ export interface View {
   cy: number;
   /** Pixels de tela por milímetro. */
   zoom: number;
+}
+
+export type ViewMode = 'plan' | '3d' | 'split';
+
+export interface OpeningDefaults {
+  width: number;
+  height: number;
+  sill: number;
 }
 
 export interface Message {
@@ -72,6 +89,11 @@ interface EditorState {
   view: View;
   messages: Message[];
   wallDefaults: { thickness: number; height: number };
+  doorDefaults: OpeningDefaults;
+  windowDefaults: OpeningDefaults;
+  slabDefaults: { thickness: number };
+  roofDefaults: { pitch: number; overhang: number; thickness: number };
+  viewMode: ViewMode;
   textHeight: number;
   offsetDistance: number | null;
 
@@ -134,10 +156,16 @@ export const useEditor = create<EditorState>((set, get) => ({
   view: { cx: 0, cy: 0, zoom: 0.05 },
   messages: [],
   wallDefaults: { thickness: 150, height: 2800 },
+  doorDefaults: { width: 800, height: 2100, sill: 0 },
+  windowDefaults: { width: 1200, height: 1200, sill: 1000 },
+  slabDefaults: { thickness: 100 },
+  roofDefaults: { pitch: 30, overhang: 600, thickness: 100 },
+  viewMode: 'plan',
   textHeight: 250,
   offsetDistance: null,
 
-  load(p) {
+  load(raw) {
+    const p = migrateProject(raw);
     reindexAll(p);
     const layer = p.layers.find((l) => l.name === '0') ?? p.layers[0];
     set({
@@ -162,9 +190,11 @@ export const useEditor = create<EditorState>((set, get) => ({
     set({ project: null, selection: [], hoverId: null });
   },
 
-  commit(label, changes) {
+  commit(label, input) {
     const p = get().project;
-    if (!p || changes.length === 0) return;
+    if (!p || input.length === 0) return;
+    // paredes unidas às que mudaram acompanham, na mesma transação (um único desfazer)
+    const changes = [...input, ...propagateWallJoins(p, input)];
     const next = applyChanges(p, changes);
     reindexChanges(next, changes);
     get().history.record({ label, changes, at: Date.now() });
@@ -210,7 +240,8 @@ export const useEditor = create<EditorState>((set, get) => ({
       lastSavedAt: Date.now(),
       saveError: null,
     })),
-  replaceProject(p, keepHistory = false) {
+  replaceProject(raw, keepHistory = false) {
+    const p = migrateProject(raw);
     reindexAll(p);
     set((s) => ({
       project: p,
@@ -267,3 +298,17 @@ export const pickEntity = (p: Vec2, tolerance: number): Entity | null => {
 };
 
 export const isLayerLocked = (layerId: Id): boolean => !!useEditor.getState().project?.layers.find((l) => l.id === layerId)?.locked;
+
+/**
+ * Geometria das paredes (junções e vãos) do pavimento ativo, recalculada só quando
+ * o projeto ou o pavimento mudam. A planta e o 3D leem o mesmo modelo.
+ */
+let geomCache: { project: Project | null; levelId: Id; map: Map<Id, WallGeometry> } = { project: null, levelId: '', map: new Map() };
+export const levelWallGeometry = (): Map<Id, WallGeometry> => {
+  const { project, levelId } = useEditor.getState();
+  if (!project) return new Map();
+  if (geomCache.project !== project || geomCache.levelId !== levelId) {
+    geomCache = { project, levelId, map: wallGeometry(wallsOnLevel(project, levelId)) };
+  }
+  return geomCache.map;
+};

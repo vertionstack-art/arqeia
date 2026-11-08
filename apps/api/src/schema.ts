@@ -7,6 +7,17 @@ const id = z.string().min(1).max(128);
 const base = { id, layerId: id, levelId: id };
 const positive = finite.positive();
 
+const openingSchema = z.object({
+  id,
+  kind: z.enum(['door', 'window']),
+  offset: finite,
+  width: positive,
+  height: positive,
+  sill: finite.min(0),
+  hinge: z.enum(['start', 'end']),
+  side: z.union([z.literal(1), z.literal(-1)]),
+});
+
 export const entitySchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('line'), a: vec, b: vec }),
   z.object({ ...base, type: z.literal('polyline'), points: z.array(vec).min(2).max(100_000), closed: z.boolean() }),
@@ -14,12 +25,31 @@ export const entitySchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('arc'), c: vec, r: positive, start: finite, end: finite }),
   z.object({ ...base, type: z.literal('text'), p: vec, text: z.string().max(10_000), height: positive, rotation: finite }),
   z.object({ ...base, type: z.literal('dimension'), a: vec, b: vec, offset: finite }),
-  z.object({ ...base, type: z.literal('wall'), a: vec, b: vec, thickness: positive, height: positive }),
+  z.object({
+    ...base,
+    type: z.literal('wall'),
+    a: vec,
+    b: vec,
+    thickness: positive,
+    height: positive,
+    baseOffset: finite.optional(),
+    openings: z.array(openingSchema).max(500).optional(),
+  }),
+  z.object({ ...base, type: z.literal('slab'), points: z.array(vec).min(3).max(10_000), thickness: positive, offset: finite }),
+  z.object({
+    ...base,
+    type: z.literal('roof'),
+    points: z.array(vec).length(4),
+    pitch: finite.min(0).max(400),
+    overhang: finite.min(0).max(10_000),
+    baseOffset: finite,
+    thickness: positive,
+  }),
 ]);
 
 export const projectSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.union([z.literal(1), z.literal(2)]),
     id,
     meta: z.object({
       name: z.string().trim().min(1).max(200),

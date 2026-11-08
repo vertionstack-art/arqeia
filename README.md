@@ -1,10 +1,10 @@
 # Traço — plataforma CAD/BIM para arquitetura
 
 Editor arquitetônico no navegador, construído sobre um **modelo central próprio**:
-a planta é desenhada com medidas reais e, nas próximas fases, o mesmo modelo gera
-o 3D, os cortes, as fachadas e as pranchas.
+a planta é desenhada com medidas reais e o mesmo modelo gera o 3D ao vivo;
+nas próximas fases, também os cortes, as fachadas e as pranchas.
 
-> Estado atual: **Fases 1 e 2** (fundação + editor CAD 2D). Veja
+> Estado atual: **Fases 1 a 3** (fundação, editor CAD 2D, BIM e 3D). Veja
 > [`docs/status.md`](docs/status.md) para a lista do que está pronto, parcial e planejado.
 
 ## Requisitos
@@ -50,6 +50,8 @@ traco-arq/
 | Ação | Como |
 |---|---|
 | Comandos | Digite com o foco no desenho: `L` linha, `W` parede, `PL` polilinha, `REC` retângulo, `C` círculo, `A` arco, `T` texto, `DIM` cota, `M` mover, `CO` copiar, `RO` rotacionar, `SC` escalonar, `MI` espelhar, `O` offset, `TR` aparar, `EX` estender, `DI` medir, `AA` área, `X` explodir, `E` apagar, `Z` enquadrar |
+| BIM | `PT` porta e `JN` janela (clique na parede; digite a largura; `F` inverte o lado, `D` a dobradiça) · `PI` piso · `COB` cobertura de duas águas. Vãos e parâmetros no painel Propriedades |
+| 3D | Abas **Planta 2D · Planta + 3D · 3D** no topo; arrastar gira, botão direito move, roda aproxima, clique seleciona |
 | Coordenadas | `3,4` absoluta · `@2,0` relativa · `@5<90` polar · `2.5` distância na direção do cursor · sufixos `cm`, `mm`, `m`, `in`, `ft` |
 | Confirmar / cancelar | Enter ou botão direito / Esc (Enter vazio repete o último comando) |
 | Seleção | Clique; Shift soma; arrastar da esquerda para a direita = janela, da direita para a esquerda = cruzamento |

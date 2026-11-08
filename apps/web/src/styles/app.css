@@ -1285,3 +1285,119 @@ fieldset {
     min-height: 260px;
   }
 }
+
+/* ---------------------------------------------------------------- Fase 3: planta + 3D */
+.views {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+.views.mode-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+  background: var(--border, #1d2a44);
+}
+.view-plan,
+.view-3d {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+}
+.view-plan > * {
+  min-height: 0;
+}
+/* no modo só-3D a planta continua montada (ferramentas e teclado), mas coberta */
+.views.mode-3d .view-3d {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.viewer3d {
+  position: relative;
+  overflow: hidden;
+  background: var(--canvas-bg);
+  min-height: 0;
+}
+.viewer3d canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+.viewer3d-hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.viewer3d-issues {
+  position: absolute;
+  top: 44px;
+  left: 10px;
+  z-index: 1;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: rgba(255, 77, 94, 0.14);
+  border: 1px solid rgba(255, 77, 94, 0.5);
+  color: var(--text, #e6edf7);
+}
+.viewer3d-issues ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+.viewer3d-help {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  margin: 0;
+  font-size: 11px;
+  pointer-events: none;
+}
+.opening-card {
+  border: 1px solid var(--border, #1d2a44);
+  border-radius: 8px;
+  padding: 8px;
+  margin: 8px 0;
+}
+.opening-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+/* a barra superior não pode alargar o editor (gerava rolagem lateral em ~1100 px) */
+.editor {
+  grid-template-columns: minmax(0, 1fr);
+}
+.topbar {
+  min-width: 0;
+  overflow: hidden;
+}
+.workspace-tabs {
+  min-width: 0;
+  flex-shrink: 1;
+}
+.ws-tab {
+  white-space: nowrap;
+}
+@media (max-width: 1320px) {
+  .ws-tab:disabled .ws-label {
+    display: none;
+  }
+}
+.viewer3d-loading {
+  display: grid;
+  place-items: center;
+  color: var(--text-faint, #8a9bb8);
+  font-size: 13px;
+}

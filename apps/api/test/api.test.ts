@@ -77,6 +77,31 @@ describe('API de projetos', () => {
     expect(p.meta.isDemo).toBe(true);
     expect(Object.keys(p.entities).length).toBeGreaterThan(5);
   });
+
+  it('salva e reabre elementos BIM (schema v2) e recusa vãos malformados', async () => {
+    const p = (await create({ demo: true })).json().project as Project;
+    expect(p.schemaVersion).toBe(2);
+    const s = await app.inject({ method: 'PATCH', url: `/v1/projects/${p.id}`, payload: { baseRevision: 1, project: p } });
+    expect(s.statusCode).toBe(200);
+    const back = (await app.inject({ method: 'GET', url: `/v1/projects/${p.id}` })).json().project as Project;
+    const types = Object.values(back.entities).map((e) => e.type);
+    expect(types).toContain('slab');
+    expect(types).toContain('roof');
+    const wall = Object.values(back.entities).find((e) => e.type === 'wall' && e.openings?.length);
+    expect(wall).toBeTruthy();
+    // vão com lado inválido é rejeitado pela validação
+    const broken = structuredClone(back);
+    const w = Object.values(broken.entities).find((e) => e.type === 'wall' && e.openings?.length)!;
+    if (w.type === 'wall') (w.openings![0] as { side: number }).side = 3;
+    const r = await app.inject({ method: 'PATCH', url: `/v1/projects/${p.id}`, payload: { baseRevision: back.revision, project: broken } });
+    expect(r.statusCode).toBe(400);
+  });
+
+  it('aceita projeto salvo no schema v1', async () => {
+    const p = (await create({ name: 'Antigo' })).json().project as Project;
+    const r = await app.inject({ method: 'PATCH', url: `/v1/projects/${p.id}`, payload: { baseRevision: 1, project: { ...p, schemaVersion: 1 } } });
+    expect(r.statusCode).toBe(200);
+  });
 });
 
 describe('autenticação (modo token)', () => {
