@@ -3,21 +3,22 @@
 Legenda: **Verificado** = implementado e testado (automático e/ou manual no navegador) ·
 **Parcial** = funciona com restrições descritas · **Planejado** = não existe ainda.
 
-Última atualização: 2026-11-07.
+Última atualização: 2026-11-07. Deploy: ver [deploy-vercel.md](deploy-vercel.md).
 
 ## Fase 1 — Fundação
 
 | Item | Status | Observações |
 |---|---|---|
 | Monorepo (npm workspaces) | Verificado | `packages/core`, `apps/api`, `apps/web` |
-| Banco de dados | Parcial | SQLite local (`node:sqlite`). PostgreSQL/PostGIS previsto para produção; o repositório está isolado em `apps/api/src/db.ts` |
+| Banco de dados | Parcial | Produção: Supabase Postgres com RLS (migração testada em PGlite; ainda não aplicada no projeto real). Local: SQLite (`node:sqlite`). Mesma interface em `apps/api/src/repository.ts` |
 | Cadastro de projetos (campos da seção 3.1) | Verificado | Nome, código, cliente, responsável, localização, tipo (10 tipos), terreno, pavimentos, unidade, escala, norte, fuso. Template demonstrativo |
 | Persistência + revisões | Verificado | Cada salvamento gera uma revisão completa (até 200 por projeto); restaurar cria nova revisão |
 | Concorrência otimista | Verificado | Salvar sobre revisão desatualizada → 409, nada é sobrescrito; a interface oferece carregar a versão do servidor ou gravar a sua como nova revisão |
 | Autosave + recuperação | Verificado | Debounce de 1,2 s; rascunho em localStorage; recuperação oferecida ao reabrir; reenvio com backoff quando offline |
 | Exclusão | Verificado | Lógica (soft delete) |
 | Trilha de auditoria | Parcial | Tabela `audit_log` grava criação/salvamento/exclusão; sem interface de consulta |
-| Autenticação / organizações / permissões | **Planejado** | Não implementado. A API escuta só em 127.0.0.1 por isso. Bloqueador para qualquer uso multiusuário |
+| Autenticação | Parcial | Supabase Auth (e-mail + senha, confirmação, redefinição). API exige JWT válido; RLS garante que cada usuário só acessa os próprios projetos. Modo local sem login só em 127.0.0.1 |
+| Organizações / papéis / compartilhamento | **Planejado** | Hoje cada projeto tem um único dono |
 | Design system | Parcial | Tokens (claro/escuro, canvas escuro/papel), componentes básicos; sem biblioteca isolada em `packages/ui` |
 | **Critério da fase:** criar, salvar, fechar e reabrir | Verificado | Teste automatizado na API + verificado no navegador com recarga completa |
 

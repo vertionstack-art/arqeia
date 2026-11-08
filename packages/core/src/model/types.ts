@@ -1,5 +1,5 @@
-import type { Vec2 } from '../geometry/vec.ts';
-import type { LengthUnit } from '../units.ts';
+import type { Vec2 } from '../geometry/vec.js';
+import type { LengthUnit } from '../units.js';
 
 export const SCHEMA_VERSION = 1;
 

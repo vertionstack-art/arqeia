@@ -35,7 +35,7 @@ import {
   type Entity,
   type LineEntity,
   type ArcEntity,
-} from '../src/index.ts';
+} from '../src/index.js';
 
 const base = { layerId: 'L', levelId: 'V' };
 let n = 0;

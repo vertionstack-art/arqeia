@@ -1,7 +1,7 @@
-import { type Vec2, add, sub, mul, angleOf, normAngle, arcSweep, projectOnLine } from '../geometry/vec.ts';
-import { type Prim, intersectPrims, lineLineParams, lineCircleParams, pointOnRoundPrim } from '../geometry/intersect.ts';
-import type { Entity, LineEntity } from './types.ts';
-import { entityPrims } from './entities.ts';
+import { type Vec2, add, sub, mul, angleOf, normAngle, arcSweep, projectOnLine } from '../geometry/vec.js';
+import { type Prim, intersectPrims, lineLineParams, lineCircleParams, pointOnRoundPrim } from '../geometry/intersect.js';
+import type { Entity, LineEntity } from './types.js';
+import { entityPrims } from './entities.js';
 
 export type EditResult = { ok: true; replace: Entity[] } | { ok: false; reason: string };
 

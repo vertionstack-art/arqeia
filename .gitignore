@@ -3,3 +3,9 @@ dist
 *.log
 apps/api/data/
 .DS_Store
+packages/core/dist
+.env
+.env.local
+.env.*.local
+.vercel
+apps/api/.prodtest

@@ -1,4 +1,4 @@
-import { type Vec2, EPS, add, cross, dist, dot, mul, sub, angleOf, angleInArc } from './vec.ts';
+import { type Vec2, EPS, add, cross, dist, dot, mul, sub, angleOf, angleInArc } from './vec.js';
 
 /** Primitiva geométrica elementar usada em interseções, trim e extend. */
 export type Prim =

@@ -1,7 +1,7 @@
-import { type Vec2, add, sub, mul, dist, norm, angleOf, fromPolar, closestOnSegment, projectOnLine, angleInArc } from './geometry/vec.ts';
-import { intersectPrims, type Prim } from './geometry/intersect.ts';
-import type { Entity } from './model/types.ts';
-import { entityPrims, entitySnapPoints, type SnapKind, type SnapPoint } from './model/entities.ts';
+import { type Vec2, add, sub, mul, dist, norm, angleOf, fromPolar, closestOnSegment, projectOnLine, angleInArc } from './geometry/vec.js';
+import { intersectPrims, type Prim } from './geometry/intersect.js';
+import type { Entity } from './model/types.js';
+import { entityPrims, entitySnapPoints, type SnapKind, type SnapPoint } from './model/entities.js';
 
 export interface SnapSettings {
   enabled: boolean;

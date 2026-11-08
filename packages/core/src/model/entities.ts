@@ -18,10 +18,10 @@ import {
   arcSweep,
   cross,
   len,
-} from '../geometry/vec.ts';
-import { type BBox, boxFromPoints, inflateBox } from '../geometry/bbox.ts';
-import { type Prim, lineLineParams } from '../geometry/intersect.ts';
-import type { Entity, WallEntity, PolylineEntity, TextEntity, DimensionEntity, ArcEntity } from './types.ts';
+} from '../geometry/vec.js';
+import { type BBox, boxFromPoints, inflateBox } from '../geometry/bbox.js';
+import { type Prim, lineLineParams } from '../geometry/intersect.js';
+import type { Entity, WallEntity, PolylineEntity, TextEntity, DimensionEntity, ArcEntity } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Geometria derivada

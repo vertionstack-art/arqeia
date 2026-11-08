@@ -1,12 +1,11 @@
-import type { LengthUnit } from '../units.ts';
-import { toMM } from '../units.ts';
-import { SCHEMA_VERSION, type Id, type Layer, type Level, type Project, type ProjectType } from './types.ts';
+import type { LengthUnit } from '../units.js';
+import { toMM } from '../units.js';
+import { SCHEMA_VERSION, type Id, type Layer, type Level, type Project, type ProjectType } from './types.js';
 
 export const newId = (prefix = ''): Id => {
-  const rnd =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  // Web Crypto existe no navegador e no Node 19+; o fallback cobre ambientes antigos
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const rnd = c?.randomUUID ? c.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
   return prefix ? `${prefix}_${rnd}` : rnd;
 };
 

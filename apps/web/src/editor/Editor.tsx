@@ -12,6 +12,7 @@ import { LayersPanel, LevelsPanel, PropertiesPanel } from './Panels.tsx';
 import { clearDraft, overwriteServer, readDraft, reloadFromServer, saveNow, startAutosave, type Draft } from './autosave.ts';
 import { ThemeToggle } from '../ui/ThemeToggle.tsx';
 import { Logo } from '../ui/Logo.tsx';
+import { UserMenu } from '../ui/UserMenu.tsx';
 
 const SaveBadge = () => {
   const state = useEditor((s) => s.saveState);
@@ -250,6 +251,7 @@ export const Editor = ({ projectId }: { projectId: string }) => {
           {revOpen && <RevisionsPopover onClose={() => setRevOpen(false)} />}
         </div>
         <ThemeToggle />
+        <UserMenu />
       </header>
 
       <Banners draft={draft} onDraftDone={() => setDraft(null)} />

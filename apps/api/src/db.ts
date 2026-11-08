@@ -2,35 +2,19 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Project } from '@traco/core';
+import type { ProjectRepository, ProjectSummary, RequestContext, RevisionSummary, SaveResult } from './repository.js';
 
-export interface ProjectSummary {
-  id: string;
-  name: string;
-  code: string;
-  client: string;
-  projectType: string;
-  isDemo: boolean;
-  revision: number;
-  entityCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RevisionSummary {
-  revision: number;
-  label: string;
-  entityCount: number;
-  createdAt: string;
-}
 
 /** Quantas revisões completas manter por projeto (as mais antigas são podadas). */
 const MAX_REVISIONS = 200;
 
 /**
- * Repositório SQLite (node:sqlite, sem dependência nativa). Em produção o
- * mesmo contrato será implementado sobre PostgreSQL; ver docs/arquitetura.md.
+ * Repositório SQLite (node:sqlite, sem dependência nativa) para desenvolvimento
+ * local: usuário único, sem login. Em produção usa-se SupabaseRepository.
+ * O contexto da requisição é ignorado aqui (não há multiusuário).
  */
-export class ProjectRepository {
+export class SqliteRepository implements ProjectRepository {
+  readonly kind = 'sqlite' as const;
   readonly db: DatabaseSync;
 
   constructor(path: string) {
@@ -88,7 +72,7 @@ export class ProjectRepository {
     }
   }
 
-  list(): ProjectSummary[] {
+  async list(_ctx?: RequestContext): Promise<ProjectSummary[]> {
     const rows = this.db
       .prepare(
         `SELECT id, name, code, client, project_type, is_demo, revision, entity_count, created_at, updated_at
@@ -109,12 +93,12 @@ export class ProjectRepository {
     }));
   }
 
-  get(id: string): Project | null {
+  async get(_ctx: RequestContext, id: string): Promise<Project | null> {
     const row = this.db.prepare('SELECT data FROM projects WHERE id = ? AND deleted_at IS NULL').get(id) as { data: string } | undefined;
     return row ? (JSON.parse(row.data) as Project) : null;
   }
 
-  insert(p: Project): Project {
+  async insert(_ctx: RequestContext, p: Project): Promise<Project> {
     const now = new Date().toISOString();
     const stored: Project = { ...p, revision: 1, createdAt: now, updatedAt: now };
     const data = JSON.stringify(stored);
@@ -138,7 +122,7 @@ export class ProjectRepository {
    * Salva com concorrência otimista: só aceita se `baseRevision` for a
    * revisão atual. Caso contrário retorna o conflito sem sobrescrever nada.
    */
-  save(p: Project, baseRevision: number, label: string): { ok: true; project: Project } | { ok: false; reason: 'not_found' } | { ok: false; reason: 'conflict'; current: number } {
+  async save(_ctx: RequestContext, p: Project, baseRevision: number, label: string): Promise<SaveResult> {
     return this.tx(() => {
       const row = this.db.prepare('SELECT revision, created_at FROM projects WHERE id = ? AND deleted_at IS NULL').get(p.id) as
         | { revision: number; created_at: string }
@@ -164,25 +148,25 @@ export class ProjectRepository {
     });
   }
 
-  softDelete(id: string): boolean {
+  async softDelete(_ctx: RequestContext, id: string): Promise<boolean> {
     const r = this.db.prepare('UPDATE projects SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL').run(new Date().toISOString(), id);
     if (Number(r.changes) > 0) this.audit(id, 'project.delete');
     return Number(r.changes) > 0;
   }
 
-  revisions(id: string): RevisionSummary[] {
+  async revisions(_ctx: RequestContext, id: string): Promise<RevisionSummary[]> {
     const rows = this.db
       .prepare('SELECT revision, label, entity_count, created_at FROM revisions WHERE project_id = ? ORDER BY revision DESC')
       .all(id) as Record<string, unknown>[];
     return rows.map((r) => ({ revision: Number(r.revision), label: String(r.label), entityCount: Number(r.entity_count), createdAt: String(r.created_at) }));
   }
 
-  revision(id: string, revision: number): Project | null {
+  async revision(_ctx: RequestContext, id: string, revision: number): Promise<Project | null> {
     const row = this.db.prepare('SELECT data FROM revisions WHERE project_id = ? AND revision = ?').get(id, revision) as { data: string } | undefined;
     return row ? (JSON.parse(row.data) as Project) : null;
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.db.close();
   }
 }

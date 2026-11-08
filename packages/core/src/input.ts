@@ -1,5 +1,5 @@
-import { type Vec2, add, fromPolar, rad } from './geometry/vec.ts';
-import { type LengthUnit, parseLength } from './units.ts';
+import { type Vec2, add, fromPolar, rad } from './geometry/vec.js';
+import { type LengthUnit, parseLength } from './units.js';
 
 /**
  * Entrada de coordenadas pelo teclado, no estilo CAD:

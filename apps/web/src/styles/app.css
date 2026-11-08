@@ -1219,3 +1219,69 @@ fieldset {
     animation: none !important;
   }
 }
+
+/* ------------------------------------------------------------ login */
+.login {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+.login-hero {
+  min-height: 0;
+}
+.login-panel {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.login-form {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.login-form h2 {
+  font-size: 44px;
+  margin-bottom: 8px;
+}
+.login-form h2 em {
+  color: var(--text-muted);
+}
+.login-form .btn.primary {
+  justify-content: center;
+  height: 40px;
+}
+.login-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.card {
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-1);
+}
+.user-chip {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+.user-chip.is-light {
+  color: rgba(255, 255, 255, 0.75);
+}
+@media (max-width: 760px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+  .login-hero {
+    min-height: 260px;
+  }
+}

@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "dev": "tsx watch --conditions=source src/index.ts",
+    "start": "node --conditions=source --import tsx src/index.ts",
+    "build": "npm run build --prefix ../../packages/core",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@traco/core": "0.1.0",
     "fastify": "^5.12.8",
     "zod": "^4.6.7"
@@ -19,5 +21,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

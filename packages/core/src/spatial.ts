@@ -1,5 +1,5 @@
-import type { BBox } from './geometry/bbox.ts';
-import { boxesIntersect } from './geometry/bbox.ts';
+import type { BBox } from './geometry/bbox.js';
+import { boxesIntersect } from './geometry/bbox.js';
 
 /**
  * Índice espacial por grade uniforme (spatial hash). Inserção/remoção O(células),

@@ -1,6 +1,6 @@
-import { createProject, layerByName, newId } from './model/project.ts';
-import type { Entity, EntityDraft, Project } from './model/types.ts';
-import type { Vec2 } from './geometry/vec.ts';
+import { createProject, layerByName, newId } from './model/project.js';
+import type { Entity, EntityDraft, Project } from './model/types.js';
+import type { Vec2 } from './geometry/vec.js';
 
 /**
  * Projeto DEMONSTRATIVO (dados fictícios, marcado com meta.isDemo).

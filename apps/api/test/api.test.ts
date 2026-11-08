@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { buildApp } from '../src/app.ts';
+import { buildApp } from '../src/app.js';
+import { SqliteRepository } from '../src/db.js';
 import type { Project } from '@traco/core';
 
 let app: ReturnType<typeof buildApp>;
 beforeEach(() => {
-  app = buildApp({ dbPath: ':memory:' });
+  app = buildApp({ repo: new SqliteRepository(':memory:'), auth: { mode: 'none' } });
 });
 afterEach(async () => {
   await app.close();
@@ -75,5 +76,38 @@ describe('API de projetos', () => {
     const p = (await create({ demo: true })).json().project as Project;
     expect(p.meta.isDemo).toBe(true);
     expect(Object.keys(p.entities).length).toBeGreaterThan(5);
+  });
+});
+
+describe('autenticação (modo token)', () => {
+  const tokenApp = () =>
+    buildApp({
+      repo: new SqliteRepository(':memory:'),
+      auth: { mode: 'token', verify: async (t) => (t === 'valido' ? 'user-1' : null) },
+    });
+
+  it('exige token nas rotas de projeto', async () => {
+    const a = tokenApp();
+    const r = await a.inject({ method: 'GET', url: '/v1/projects' });
+    expect(r.statusCode).toBe(401);
+    expect(r.json().error).toBe('unauthorized');
+    await a.close();
+  });
+
+  it('recusa token inválido e aceita válido', async () => {
+    const a = tokenApp();
+    const bad = await a.inject({ method: 'GET', url: '/v1/projects', headers: { authorization: 'Bearer falso' } });
+    expect(bad.statusCode).toBe(401);
+    const ok = await a.inject({ method: 'GET', url: '/v1/projects', headers: { authorization: 'Bearer valido' } });
+    expect(ok.statusCode).toBe(200);
+    await a.close();
+  });
+
+  it('health continua público e informa o modo', async () => {
+    const a = tokenApp();
+    const r = await a.inject({ method: 'GET', url: '/v1/health' });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().auth).toBe('required');
+    await a.close();
   });
 });

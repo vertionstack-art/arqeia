@@ -21,7 +21,8 @@ npm run dev
 
 - Web: http://localhost:5173
 - API: http://127.0.0.1:4310 (o Vite encaminha `/v1` para ela)
-- Banco: `apps/api/data/traco.db` (criado automaticamente; mude com `TRACO_DB`)
+- Banco local: `apps/api/data/traco.db` (criado automaticamente; mude com `TRACO_DB`). Sem login neste modo.
+- Produção (Vercel + Supabase com login): veja [`docs/deploy-vercel.md`](docs/deploy-vercel.md)
 
 Para rodar separadamente: `npm run dev:api` e `npm run dev:web`.
 
@@ -37,9 +38,11 @@ npm run typecheck
 ```text
 traco-arq/
 ├── packages/core/   modelo de dados, geometria, snap, histórico (sem dependências de UI)
-├── apps/api/        API REST versionada (/v1) — Fastify + SQLite + Zod
+├── apps/api/        API REST versionada (/v1) — Fastify + Zod; Supabase (produção) ou SQLite (local)
 ├── apps/web/        app React (dashboard + editor 2D em canvas)
-└── docs/            arquitetura, status, limitações, benchmark
+├── supabase/        migrações SQL (tabelas, RLS, funções)
+├── vercel.json      serviços web (/) e api (/v1)
+└── docs/            arquitetura, status, deploy, benchmark
 ```
 
 ## Usando o editor

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, Plus, Trash2, Loader2, ServerCrash, FolderOpen, Box, FileText, Library, Clapperboard, Sparkles, Plug } from 'lucide-react';
 import { api, type ProjectSummary } from '../api/client.ts';
+import { authEnabled } from '../auth/supabase.ts';
 import { NewProjectDialog } from './NewProjectDialog.tsx';
 import { Logo } from '../ui/Logo.tsx';
 import { ThemeToggle } from '../ui/ThemeToggle.tsx';
+import { UserMenu } from '../ui/UserMenu.tsx';
 
 const ROADMAP = [
   { icon: Box, title: 'Editor 3D', desc: 'Paredes viram volume, com vãos reais de portas e janelas.', phase: 'Fase 3' },
@@ -56,6 +58,7 @@ export const Dashboard = () => {
             <a href="#roteiro">Roteiro</a>
           </div>
           <div className="hero-nav-actions">
+            <UserMenu light />
             <ThemeToggle withCanvas={false} />
             <button className="btn pill light" onClick={() => setDialog(true)}>
               Novo projeto
@@ -91,7 +94,7 @@ export const Dashboard = () => {
           </div>
           <div>
             <dt>Armazenamento</dt>
-            <dd>{error ? 'offline' : 'local'}</dd>
+            <dd>{error ? 'offline' : authEnabled ? 'nuvem' : 'local'}</dd>
           </div>
         </dl>
       </section>
@@ -111,7 +114,9 @@ export const Dashboard = () => {
             <ServerCrash />
             <div>
               <strong>Não foi possível falar com a API.</strong>
-              <p>{error} Rode <code>npm run dev</code> na raiz do repositório.</p>
+              <p>
+                {error} {!authEnabled && <>Rode <code>npm run dev</code> na raiz do repositório.</>}
+              </p>
             </div>
             <button className="btn" onClick={load}>
               Tentar de novo

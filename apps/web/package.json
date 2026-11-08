@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@traco/core": "0.1.0",
     "lucide-react": "^1.70.0",
     "react": "^19.3.1",

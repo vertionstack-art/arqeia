@@ -1,4 +1,4 @@
-import type { Entity, Id, Layer, Level, Project } from './model/types.ts';
+import type { Entity, Id, Layer, Level, Project } from './model/types.js';
 
 /**
  * Alteração atômica e reversível. `before = null` significa criação,

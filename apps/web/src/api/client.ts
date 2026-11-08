@@ -1,4 +1,5 @@
 import type { NewProjectInput, Project } from '@traco/core';
+import { accessToken, authEnabled, supabase } from '../auth/supabase.ts';
 
 export interface ProjectSummary {
   id: string;
@@ -36,10 +37,16 @@ export class ApiError extends Error {
 
 const request = async <T>(method: string, url: string, body?: unknown): Promise<T> => {
   let res: Response;
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  if (authEnabled) {
+    const token = await accessToken();
+    if (token) headers.authorization = `Bearer ${token}`;
+  }
   try {
     res = await fetch(url, {
       method,
-      headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
@@ -55,6 +62,8 @@ const request = async <T>(method: string, url: string, body?: unknown): Promise<
   if (!res.ok) {
     // proxy do Vite sem API rodando responde 500/502/504
     if (res.status >= 502 || (res.status === 500 && !data.error)) throw new ApiError('Servidor indisponível. A API está rodando?', 0, 'network');
+    // sessão expirada/inválida: volta para a tela de login
+    if (res.status === 401 && supabase) void supabase.auth.signOut();
     throw new ApiError(String(data.message ?? `Erro ${res.status}`), res.status, String(data.error ?? 'http'), data);
   }
   return data as T;

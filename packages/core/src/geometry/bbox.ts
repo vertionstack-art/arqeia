@@ -1,4 +1,4 @@
-import type { Vec2 } from './vec.ts';
+import type { Vec2 } from './vec.js';
 
 export interface BBox {
   minX: number;
