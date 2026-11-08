@@ -12,7 +12,7 @@ Não há *bindings*: o navegador chama `/v1` no mesmo domínio; nenhum serviço 
 ## 1. Supabase (uma vez)
 
 1. Crie uma organização/projeto no Supabase da **Vertion Stack** (região São Paulo, `sa-east-1`).
-2. No **SQL Editor**, rode todo o conteúdo de [`supabase/migrations/0001_init.sql`](../supabase/migrations/0001_init.sql).
+2. No **SQL Editor**, rode todo o conteúdo de [`supabase/migrations/20261107000000_init.sql`](../supabase/migrations/20261107000000_init.sql).
    Cria `projects`, `revisions`, `audit_log`, as políticas RLS e as funções `create_project`/`save_project`.
 3. Em **Authentication → URL Configuration**, defina **Site URL** = domínio da Vercel
    (ex.: `https://arqeia.vercel.app`) e adicione `http://localhost:5173` em *Redirect URLs*.
