@@ -1,0 +1,15 @@
+{
+  "name": "traco-arq",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Traço — plataforma CAD/BIM para arquitetura",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace @traco/api & npm run dev --workspace @traco/web",
+    "dev:api": "npm run dev --workspace @traco/api",
+    "dev:web": "npm run dev --workspace @traco/web",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspace @traco/web"
+  }
+}
