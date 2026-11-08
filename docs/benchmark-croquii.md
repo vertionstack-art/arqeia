@@ -109,7 +109,7 @@ feita em **2026-11-08** com a conta do próprio usuário (plano **Grátis**), pe
 | Equipe | Papéis Dono/Admin/Membro, financeiro por pessoa | Escritório → Acessos | Tela | Permissão por pessoa só no plano Estúdio | Organizações e papéis (pendente no Traço) | P1 | Verificado |
 | IA | Memória do gosto do escritório; nomes anonimizados antes da IA | Biblioteca → Gosto do escritório | Tela; site | Uso de IA em memorial/estudo não detalhado | IA com comandos validados e prévia (Fase 8) | P2 | Verificado (tela) / Anunciado (anonimização) |
 
-## Auditoria profunda — testes práticos (2026-11-08, em andamento)
+## Auditoria profunda — testes práticos (2026-11-08)
 
 Com autorização do usuário para "clicar em tudo", foi criado o projeto **"Teste auditoria Traço"**
 (1 das 3 vagas grátis; pode ser excluído depois). Ações irreversíveis ou que saem da conta (excluir, convidar,
@@ -184,11 +184,101 @@ enviar ao cliente, assinar plano, baixar arquivos) **não** foram executadas.
 | IA · Sugerir layout | Exige tipo de ambiente; após definir "Sala de estar", ficou **>5 min "Sugerindo"** e mostrou "Não foi possível conectar ao servidor" (prometido: até 1 min) | **Falha** |
 | Painel IA | Render, Decorar foto, Gerar planta, Planta da foto, Sugerir layout, Família da foto, Preencher moodboard; cota grátis: 2 imagens/mês | Verificado (presença) |
 
-### Pendente desta rodada
+### Parte 2 — cortes, telhado, ferramentas, Estudo, Reforma, Financeiro, publicação (2026-11-08)
 
-Vista do Corte AA, elevações/fachadas, cotas, escada e telhado, exportação (diálogo já visto), Estudos
-(assistente completo), Reforma, Biblioteca (importação), Financeiro (propostas e contrato), Compartilhar/Publicar
-(até antes do envio) e versão mobile.
+#### Catálogo de ferramentas
+
+O editor expõe **cerca de 250 ferramentas** em 11 grupos com os nomes e atalhos do Revit:
+Arquitetura, Estrutura, Aço, Sistemas (AVAC, hidráulica, elétrica), Inserir, Anotar, Analisar,
+Massa e terreno, Vista, Gerenciar e Modificar. Uma amostra foi acionada de verdade:
+
+| Ferramenta | Resultado | Status |
+|---|---|---|
+| Escada/rampa, Forro, Guarda-corpo, Elevação, Corte, Superfície topográfica, Conexão automática (aço), Módulo de marcenaria, Reconhecer paredes | Cada uma abre seu prompt próprio ("Clique no ambiente da escada…", "Enter põe as 4 elevações"…) | Verificado (início do comando) |
+| Telhado | Contorno por cliques, beiral 0,60 m, inclinação 30% (16,7°), platibanda; gerou **telhado de 4 águas com cumeeira e espigões**, tipo "Telha cerâmica", e aparece correto no 3D | **Verificado** |
+| Cargas de aquecimento e resfriamento | Cálculo real: Sala 15,57 m² → 8.400 BTU/h (158 W/m²), com aviso de que não substitui a NBR 16401 nem a ART | Verificado |
+| Entorno pelo mapa | Ruas, lotes e edificações do OpenStreetMap (exige o projeto no mapa) | Verificado (diálogo) |
+| Levantamento por trena | Mede cômodos por dentro e gera paredes e ambientes | Verificado (diálogo) |
+| Worksets | Painel real (criar workset, mover seleção) | Verificado (versão mínima) |
+| Verificação de interferência | "Não há modelo de disciplina vinculado… importe um IFC" | Verificado (depende de IFC) |
+| Projeto generativo | Variações de manchas do modo Estudo (±15%) | Verificado (versão mínima) |
+| Programação visual | **Admite "versão mínima"**: macro = lista de comandos de texto, "sem nós nem scripts" | Rótulo maior que a função |
+| Restaurar backup | Abre o painel Versões | Verificado |
+
+Achado: a sondagem por script (sem clique real) não abria os painéis; com clique real todos responderam.
+Nenhum item testado era botão morto. Vários, porém, são versões bem mais simples do que o nome do Revit sugere.
+
+#### Cortes, fachadas e cotas
+
+| Teste | Resultado | Status |
+|---|---|---|
+| Abrir a vista "Corte AA" (duplo clique, Enter, chamada no desenho) | **Não abre vista de corte**: só seleciona e enquadra a linha na planta | Falha / ausente |
+| Comando Vista nas Pranchas | Só oferece o pavimento (Térreo); cortes e elevações não podem ser postos numa folha | Ausente |
+| Marca de elevação | Criada e listada em "Elevações" no Navegador | Verificado (criação) |
+| Pranchas geradas (regeneradas após as marcas) | Planta baixa com cadeias de cotas · **Cortes AA e BB** · 4 fachadas · elevações internas da Sala | Verificado |
+| Qualidade dos cortes | Esquemáticos: contorno das paredes, linha de piso e janela; **sem laje, cobertura nem cotas de nível legíveis** | Parcial |
+| Relação com a linha de corte do usuário | O "Corte AA" gerado é **longitudinal e automático**; ignora a linha desenhada (transversal), e o BB nasce sozinho | Falha de modelo |
+| "Abrir" Pranchas no aviso de documentação gerada | Leva a um jogo "Apresentação ao cliente" **vazio**; as 5 folhas ficam em outra tela (Conferir pranchas) | Inconsistência |
+| Exportar CAD e 3D | DXF, OBJ, GLB, DAE, IFC, IFC 2x3 e gbXML no navegador; DGN, STEP, SAT, DWF e FBX desligados com aviso honesto | Verificado (não baixado) |
+
+#### Modo Estudo e assistente de estudos
+
+| Teste | Resultado | Status |
+|---|---|---|
+| Ferramentas do modo | Mancha, Ligação, Setorizar, Converter em paredes | Verificado |
+| Programa "Residência" | Cria a lista (sala, cozinha, serviço, suíte, 2 dormitórios, banheiros, garagem) com "0 de 1 colocado" e **cria um estudo na conta** | Verificado |
+| Mancha → Setorizar → Converter | Bolha de 12 m² → retângulo → **4 paredes + 1 ambiente reais** (10,25 m² internos); a Sala vizinha recalculou para 13,82 m² pela sobreposição. Desfeito depois | **Verificado** |
+| Vínculo mancha ↔ programa | A mancha nasceu como "Mancha" genérica; o item do programa continuou "0 de 1 colocado" | Falha de UX |
+| Assistente (Estudos) | 5 etapas: Programa → Organograma → Leitura do terreno → Blocos → Alternativas; o exemplo tem 3 alternativas lado a lado e "Gerar planta" | Verificado (exemplo) |
+| Leitura do terreno | Lote pelo mapa (450,3 m²), área edificável, TO e CA, **horas de sol por fachada** e carta solar para −27,6°. Lógica do hemisfério sul correta (frente N 38° O: 8,8 h no inverno) | Verificado |
+| Recomendações do terreno | As **4 fachadas dizem "pede brise"**, até os fundos com 1,5 h de sol no inverno; o texto contradiz os números | Inconsistência |
+
+#### Verificação ao vivo da planta
+
+Avisos com norma citada: "Sala: abertura de ventilação de 5,2% do piso; a NBR 15575 pede 8%
+(item 11.3, Tabela 16)" e "Mancha: sem porta nem passagem". **Bug:** num projeto em **São Paulo**, o painel cita
+o **Código de Obras de Florianópolis** (LC 786/2026).
+
+#### Reforma
+
+Fases Existente / Obra / Proposta, legenda com contagem (10 existentes) e convenção de cores
+(cinza, amarelo, vermelho, roxo para "regularizar"). "Começar a proposta" congela o levantamento como versão;
+apagar uma parede existente a marca **"A demolir"** (tracejada). Verificado.
+**Bug:** o "Desfazer" do aviso não reverteu a demolição; foi preciso voltar "Fase demolida" para Nenhum no painel.
+
+#### Financeiro
+
+Telas: Visão geral, Propostas (etapas × horas → preço, custo e margem; aprovação pelo portal), Contratos,
+Lançamentos, Contas, Extrato, Impostos (provisão pela alíquota do contador) e Relatório mensal com
+**planilha XLSX + ZIP de comprovantes para o contador**. Não criei proposta, para não gastar a cota grátis.
+
+No exemplo (contrato de R$ 38.000, 4 etapas, 4 parcelas por gatilho), dois **erros de cálculo**:
+- **Margem projetada inflada:** o custo de horas "No fim" (R$ 3.303) é igual ao "Até agora". As etapas legal e
+  executiva, ainda não começadas (R$ 4.620 orçados), ficam fora da conta, e a margem projetada sai em 79,9%,
+  acima da orçada (67,7%).
+- **Radar contraditório:** o radar diz "em dia, nenhuma etapa pedindo atenção" com o Estudo preliminar a
+  R$ 3.915 contra R$ 1.915 orçados (104% acima).
+
+#### Compartilhar e publicar (até antes do envio)
+
+- Acesso ao projeto: equipe com papel e um **link só para ver** a planta, sem conta (mede e comenta, não vê o
+  financeiro, revogável). Não gerei o link.
+- Publicar apresentação: link para o cliente comentar cada página e aprovar, no celular ou no computador;
+  3 publicações grátis. Não publiquei.
+
+#### Não testado nesta rodada
+
+- **Versão mobile:** a janela do Chrome estava maximizada e não redimensionou. O app recusa ser carregado em
+  iframe (proteção contra clickjacking, um ponto positivo).
+- **Escada:** o comando exige um ambiente e um segundo pavimento.
+- **Biblioteca:** importação de famílias.
+- **Portal do cliente:** pelo lado do cliente, porque exigiria publicar.
+
+#### Estado deixado na conta
+
+O projeto "Teste auditoria Traço" ficou com: paredes, Sala, porta, janela, linha de corte A, marca de elevação 1,
+telhado, proposta de reforma iniciada (sem demolições) e a documentação regenerada (R01). Também ficou o estudo
+"Programa da planta (Residência)" em Estudos. Excluir os dois é irreversível e fica a critério do usuário.
 
 ## Planos (site e app, 2026-11-08)
 
@@ -212,7 +302,17 @@ Oferta de fundador: 10% por 12 meses até 15/12.
 4. **Normas municipais só de Florianópolis.** Um motor de regras por município é uma vantagem clara no Brasil.
 5. **3D derivado, sem modelagem livre**, e imagens por IA em vez de render físico fiel.
 6. Status do exemplo **inconsistente** ("conferido/aprovado" na visão geral, "não gerado" nas telas): quadros derivados ao vivo evitam isso.
+7. **Cortes e fachadas não são vistas vivas:** a linha de corte do usuário não define o corte gerado, não há vista
+   de corte editável e as pranchas trazem cortes esquemáticos. Vista de corte real, cortada pelo modelo e com cotas
+   e níveis, é uma vantagem direta (Fase 4).
+8. **IA de render e de layout fora do ar em produção**, e cerca de 250 ferramentas com nome de Revit, várias em
+   "versão mínima". O Traço deve mostrar só o que funciona, com o status de cada item.
+9. **Erros de cálculo no financeiro** (margem projetada e radar) e **norma do município errado** nos avisos:
+   regras e contas testadas automaticamente são diferencial de confiança.
 
-**Não verificado nesta auditoria:** execução real das ferramentas de desenho, cortes/fachadas, geração de memorial,
-quadros, conformidade, exportação efetiva, portal do cliente, versão mobile e qualidade das imagens com IA.
-Todas exigiriam criar ou alterar dados na conta; podem ser feitas num projeto de teste se o usuário autorizar.
+**O que o Croquii faz bem e o Traço ainda não tem:** telhado automático por contorno, fluxo mancha → paredes,
+leitura de terreno com insolação, fases de reforma, cálculo de carga térmica, exportação IFC/glTF/gbXML no
+navegador e o portal de aprovação do cliente. Entram como requisitos nas Fases 3 a 5 e 9.
+
+**Não verificado:** versão mobile, escada, importação na Biblioteca, portal do lado do cliente, exportação
+efetiva (não baixamos arquivos) e qualidade das imagens com IA (serviço desligado).
